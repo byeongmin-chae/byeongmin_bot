@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.Python
+.venv/
+venv/
+env/
+
+.env
+telegram_bot_token.txt
+newsapi_key.txt
+news_bot_subscribers.json
+
+.DS_Store
