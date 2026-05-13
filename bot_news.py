@@ -89,18 +89,63 @@ logger = logging.getLogger(__name__)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
+TOKEN_ENV_NAMES = (
+    "TELEGRAM_BOT_TOKEN",
+    "TELEGRAM_TOKEN",
+    "BOT_TOKEN",
+    "telegram_bot_token",
+    "telegram_token",
+    "bot_token",
+)
+
+
+def normalize_env_name(name: str) -> str:
+    return name.strip().replace("-", "_").upper()
+
+
+def normalize_token(value: str) -> str:
+    token = value.strip().strip('"').strip("'")
+    token_env_names = {normalize_env_name(name) for name in TOKEN_ENV_NAMES}
+    if "=" in token and normalize_env_name(token.split("=", 1)[0]) in token_env_names:
+        token = token.split("=", 1)[1].strip().strip('"').strip("'")
+    return token
+
+
+def read_env_secret(*env_names: str) -> str | None:
+    normalized_names = {normalize_env_name(name) for name in env_names}
+
+    for env_name, value in os.environ.items():
+        if normalize_env_name(env_name) in normalized_names and value:
+            return normalize_token(value)
+
+    return None
+
+
+def matching_env_names(*patterns: str) -> list[str]:
+    normalized_patterns = tuple(pattern.upper() for pattern in patterns)
+    return sorted(
+        env_name
+        for env_name in os.environ
+        if any(pattern in normalize_env_name(env_name) for pattern in normalized_patterns)
+    )
+
+
 def read_secret(env_name: str, file_path: Path) -> str | None:
-    value = os.environ.get(env_name)
+    value = read_env_secret(env_name)
     if value:
-        return value.strip()
+        return value
 
     if file_path.exists():
-        return file_path.read_text(encoding="utf-8").strip()
+        return normalize_token(file_path.read_text(encoding="utf-8"))
 
     return None
 
 
 def read_telegram_token() -> str | None:
+    value = read_env_secret(*TOKEN_ENV_NAMES)
+    if value:
+        return value
+
     return read_secret("TELEGRAM_BOT_TOKEN", TELEGRAM_TOKEN_FILE)
 
 
@@ -499,9 +544,12 @@ async def post_init(app: Application) -> None:
 def main() -> None:
     token = read_telegram_token()
     if not token:
+        detected_names = matching_env_names("TELEGRAM", "BOT", "TOKEN")
+        detected_text = ", ".join(detected_names) if detected_names else "없음"
         raise RuntimeError(
-            "텔레그램 봇 토큰이 없습니다. TELEGRAM_BOT_TOKEN 환경변수를 설정하거나 "
-            "바탕화면에 telegram_bot_token.txt 파일을 만들고 토큰을 넣어주세요."
+            "텔레그램 봇 토큰이 없습니다. Railway 서비스 Variables에 "
+            "TELEGRAM_BOT_TOKEN을 설정해주세요. "
+            f"현재 런타임에서 감지된 관련 환경변수 이름: {detected_text}"
         )
 
     app = Application.builder().token(token).post_init(post_init).build()
