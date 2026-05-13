@@ -91,6 +91,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 TOKEN_ENV_NAMES = (
     "TELEGRAM_BOT_TOKEN",
+    "ELEGRAM_BOT_TOKEN",
     "TELEGRAM_TOKEN",
     "BOT_TOKEN",
     "telegram_bot_token",
