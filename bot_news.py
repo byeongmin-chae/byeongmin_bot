@@ -25,10 +25,14 @@ from telegram.ext import (
 KST = ZoneInfo("Asia/Seoul")
 NEWS_TIME = time(hour=8, minute=0, tzinfo=KST)
 
+APP_DIR = Path(__file__).resolve().parent
 DESKTOP = Path.home() / "Desktop"
 TELEGRAM_TOKEN_FILE = DESKTOP / "telegram_bot_token.txt"
 NEWSAPI_KEY_FILE = DESKTOP / "newsapi_key.txt"
-SUBSCRIBERS_FILE = DESKTOP / "news_bot_subscribers.json"
+DATA_DIR = Path(os.environ.get("DATA_DIR", APP_DIR))
+SUBSCRIBERS_FILE = Path(
+    os.environ.get("SUBSCRIBERS_FILE", DATA_DIR / "news_bot_subscribers.json")
+)
 
 NEWSAPI_URL = "https://newsapi.org/v2/everything"
 GOOGLE_NEWS_RSS_URL = "https://news.google.com/rss?hl=ko&gl=KR&ceid=KR:ko"
@@ -118,6 +122,7 @@ def load_subscribers() -> set[int]:
 
 def save_subscribers(chat_ids: set[int]) -> None:
     data = {"chat_ids": sorted(chat_ids)}
+    SUBSCRIBERS_FILE.parent.mkdir(parents=True, exist_ok=True)
     SUBSCRIBERS_FILE.write_text(
         json.dumps(data, ensure_ascii=False, indent=2),
         encoding="utf-8",
@@ -488,7 +493,7 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
 
 
 async def post_init(app: Application) -> None:
-    app.create_task(send_daily_news(app.bot))
+    asyncio.create_task(send_daily_news(app.bot))
 
 
 def main() -> None:

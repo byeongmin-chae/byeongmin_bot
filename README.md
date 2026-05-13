@@ -53,6 +53,27 @@ Run the bot:
 python bot_news.py
 ```
 
+## Railway
+
+This repository includes Railway deployment files:
+
+- `railway.toml` - runs `python bot_news.py`
+- `Procfile` - declares the bot as a worker process
+- `runtime.txt` - pins Python 3.12
+
+Set these Railway variables:
+
+```bash
+TELEGRAM_BOT_TOKEN=your-telegram-bot-token
+NEWSAPI_KEY=your-newsapi-key
+```
+
+`NEWSAPI_KEY` is optional because the bot can fall back to Google News RSS.
+
+Only run one instance of the bot at a time. Telegram long polling returns a
+`Conflict: terminated by other getUpdates request` error when the same bot token
+is used by both Railway and a local terminal process.
+
 ## Notes
 
 The bot can also read secrets from these local files on your Desktop:
